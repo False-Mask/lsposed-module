@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.codelocator"
+    namespace = "com.example.test"
     compileSdk = 33
 
     defaultConfig {
-        applicationId = "com.example.codelocator"
+        applicationId = "com.example.test"
         minSdk = 24
         targetSdk = 33
         versionCode = 1
@@ -36,13 +36,7 @@ android {
 }
 
 dependencies {
-
-    // https://mvnrepository.com/artifact/de.robv.android.xposed/api
     compileOnly("de.robv.android.xposed:api:82")
-//    compileOnly("de.robv.android.xposed:api:82:sources")
-    // https://mvnrepository.com/artifact/com.bytedance.tools.codelocator/codelocator-core
-    implementation("com.bytedance.tools.codelocator:codelocator-core:2.0.4")
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
