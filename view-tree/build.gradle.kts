@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.test"
+    namespace = "com.example.view_tree"
     compileSdk = 33
 
     defaultConfig {
-        applicationId = "com.example.test"
+        applicationId = "com.example.view_tree"
         minSdk = 24
         targetSdk = 33
         versionCode = 1
@@ -36,8 +36,9 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.viewpager2)
+
     compileOnly("de.robv.android.xposed:api:82")
+
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

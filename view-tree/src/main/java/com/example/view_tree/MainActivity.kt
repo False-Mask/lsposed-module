@@ -1,4 +1,4 @@
-package com.example.codelocator
+package com.example.view_tree
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
