@@ -1,41 +1,48 @@
 package com.example.test
 
+import android.app.Application
+import android.os.Debug
 import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 import de.robv.android.xposed.XC_MethodHook
+import de.robv.android.xposed.XC_MethodReplacement
+import kotlin.concurrent.thread
 
 class TestHooker : IXposedHookLoadPackage {
     override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
-
-        // XposedBridge.log("current:\n" + Thread.currentThread().stackTrace.joinToString("\n"))
-        XposedBridge.log("test: 正在对 ${lpparam.packageName} 进行注入")
         val classloader = lpparam.classLoader
-        val clz = classloader.loadClass("android.view.ViewRootImpl")
-        val ws = classloader.loadClass("android.view.IWindowSession")
-        val ct = classloader.loadClass("android.content.Context")
-        val dp = classloader.loadClass("android.view.Display")
-        clz.declaredConstructors
-            .forEach {
-                XposedBridge.log(it.toString())
+        val replacement = object : XC_MethodHook() {
+
+            override fun beforeHookedMethod(param: MethodHookParam) {
+                param.result = null
+
+                Debug.startMethodTracingSampling(null, 1024 * 1024, 1000)
+                XposedBridge.log(System.currentTimeMillis().toString() + ": startTrace")
+
+                // XposedBridge.invokeOriginalMethod(param.method, param.thisObject, param.args)
+
+                Debug.stopMethodTracing()
+                XposedBridge.log(System.currentTimeMillis().toString() + ": endTrace")
+
+//                thread {
+//                    Thread.sleep(1000)
+//                    Debug.stopMethodTracing()
+//                    XposedBridge.log(System.currentTimeMillis().toString() + ": endTrace")
+//                }
             }
-        // 测试 ViewRootImpl
-        val vr = XposedHelpers.findAndHookConstructor(
-            clz,
-            ct,
-            dp,
-            ws,
-            Boolean::class.java,
-            object : XC_MethodHook() {
-                override fun afterHookedMethod(param: MethodHookParam) {
-                    XposedBridge.log("StackTrace:\n")
-                    XposedBridge.log(Thread.currentThread().stackTrace.joinToString("\n"))
-                }
-            }
-        )
 
 
-        XposedBridge.log("test: ${lpparam.packageName} 注入完成")
+        }
+
+        XposedHelpers.findAndHookMethod(Application::class.java, "onCreate" , replacement)
+
+//        thread {
+//            XposedBridge.log("start!!")
+//            Thread.sleep(5000)
+//            XposedHelpers.findAndHookMethod(classloader.loadClass("X.QOZ"), "A01",Int::class.java , replacement)
+//        }
+
     }
 }

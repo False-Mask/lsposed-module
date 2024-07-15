@@ -36,15 +36,11 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.viewpager2)
     compileOnly("de.robv.android.xposed:api:82")
+//    implementation(libs.androidx.viewpager2)
+    // https://mvnrepository.com/artifact/com.squareup.okhttp3/okhttp
+    // implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.material)
-    implementation(libs.androidx.activity)
-    implementation(libs.androidx.constraintlayout)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
+    // compileOnly("de.robv.android.xposed:api:82")
+
 }
