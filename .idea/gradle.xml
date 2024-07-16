@@ -10,6 +10,7 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/codelocator" />
+            <option value="$PROJECT_DIR$/perfetto-trace" />
             <option value="$PROJECT_DIR$/test" />
             <option value="$PROJECT_DIR$/view-tree" />
           </set>

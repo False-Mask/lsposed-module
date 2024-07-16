@@ -25,3 +25,4 @@ rootProject.name = "My Application"
 include(":codelocator")
 include(":test")
 include(":view-tree")
+include(":perfetto-trace")
