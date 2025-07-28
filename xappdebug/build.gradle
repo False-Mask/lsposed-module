@@ -1,0 +1,145 @@
+buildscript {
+
+    repositories {
+        google()
+        mavenCentral()
+        maven { url "https://api.xposed.info/" }
+        maven { url 'https://dl.bintray.com/kotlin/kotlin-eap' }
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:7.4.2'
+        classpath 'dev.rikka.tools.refine:gradle-plugin:3.0.3'
+
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+plugins {
+    id("com.android.application") version("7.4.2")
+}
+
+apply plugin: 'dev.rikka.tools.refine.gradle-plugin'
+
+android {
+    signingConfigs {
+        release {
+            // for custom release signing keys
+            // 1. create `tw.idv.palatis.XAppDebug.signing.properties` under `~/.gradle`
+            // 2. populate with these values:
+            //   - STORE_FILE=/path/to/keystore.jks
+            //   - STORE_PASSWORD=super_secret_password
+            //   - KEY_ALIAS=your key alias
+            //   - KEY_PASSWORD=super_secret_password
+
+            def propsPath = System.getProperty("user.home") + "/.gradle/tw.idv.palatis.XAppDebug.signing.properties"
+            def propsFile = file(propsPath)
+            if (propsFile.canRead()) {
+                def props = new Properties()
+                props.load(new FileInputStream(propsFile))
+
+                storeFile file(props['STORE_FILE'])
+                storePassword props['STORE_PASSWORD']
+                keyAlias props['KEY_ALIAS']
+                keyPassword props['KEY_PASSWORD']
+            } else {
+                println "${propsPath} is missing"
+            }
+        }
+    }
+
+    lintOptions {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+
+    dataBinding {
+        enabled true
+    }
+
+    compileSdkVersion 33
+
+    defaultConfig {
+        applicationId "tw.idv.palatis.xappdebug"
+        minSdkVersion 24
+        targetSdkVersion 33
+        versionCode 100006
+        versionName "1.0.6"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        project.ext.set("archivesBaseName", applicationId + "-" + versionName + "-" + versionCode)
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-dbg"
+        }
+        release {
+            if (signingConfigs.release.storeFile != null)
+                signingConfig signingConfigs.release
+            aaptOptions.cruncherEnabled = true
+            shrinkResources true
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = 1.8
+        targetCompatibility = 1.8
+    }
+
+    namespace 'tw.idv.palatis.xappdebug'
+}
+
+android.applicationVariants.all { variant ->
+    def version
+    if (variant.versionName != null && !variant.versionName.isEmpty())
+        version = "${variant.versionName}-${variant.versionCode}"
+    else
+        version = "${variant.versionCode}"
+
+    def archiveBuildTask = tasks.create(
+            name: "archive${variant.name.capitalize()}Apk",
+            type: Copy,
+            dependsOn: variant.assemble,
+    ) {
+        group 'archive'
+        description "Assembles and archives apk and its proguard mapping for the ${variant.name.capitalize()} build"
+
+        variant.outputs.all { output ->
+            from output.outputFile.path
+            rename "${output.outputFile.name}", "${applicationId}-${version}-${output.outputFile.name}"
+        }
+        if (variant.mappingFile != null) {
+            from variant.mappingFile.path
+            rename "${variant.mappingFile.name}", "${applicationId}-${version}-${variant.mappingFile.name}"
+        }
+
+        into "${rootDir}/archive/${project.name}/"
+    }
+    variant.assemble.finalizedBy archiveBuildTask
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+
+    compileOnly project(':hiddenapi-stubs')
+    implementation("dev.rikka.tools.refine:runtime:4.3.0")
+
+    implementation 'com.google.android.material:material:1.4.0-alpha02'
+    implementation 'androidx.appcompat:appcompat:1.3.0-rc01'
+    implementation 'androidx.preference:preference:1.1.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.0-beta01'
+    implementation 'androidx.navigation:navigation-fragment:2.5.3'
+    implementation 'androidx.navigation:navigation-ui:2.5.3'
+    implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'
+
+    compileOnly 'de.robv.android.xposed:api:82'
+    // compileOnly 'de.robv.android.xposed:api:82:sources'
+
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+}

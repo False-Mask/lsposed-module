@@ -11,23 +11,25 @@ import com.bytedance.tools.codelocator.CodeLocator
 
 class CodeLocatorInjector : IXposedHookLoadPackage {
     override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
-        XposedBridge.log("正在对 ${lpparam.packageName} 进行注入")
+        XposedBridge.log("codelocator: 正在对 ${lpparam.packageName} 进行注入")
         XposedHelpers.findAndHookMethod(Application::class.java, "attach", Context::class.java,
             object : XC_MethodHook() {
                 override fun afterHookedMethod(param: MethodHookParam) {
                     val clz = CodeLocator::class.java
 
-                    val init = clz.getDeclaredMethod("init", Application::class.java).also {
-                        it.invoke(null,param.thisObject as Application)
-                    }
+                    CodeLocator.init(param.thisObject as Application)
 
-                    val registerReceiver = clz.getDeclaredMethod("registerReceiver").also {
-                        it.isAccessible = true
-                        it.invoke(null)
-                    }
+//                    val init = clz.getDeclaredMethod("init", Application::class.java).also {
+//                        it.invoke(null,param.thisObject as Application)
+//                    }
+
+//                    val registerReceiver = clz.getDeclaredMethod("registerReceiver").also {
+//                        it.isAccessible = true
+//                        it.invoke(null)
+//                    }
                 }
             })
-        XposedBridge.log("${lpparam.packageName} 注入成功")
+        XposedBridge.log("codelocator: ${lpparam.packageName} 注入成功")
     }
 
 }

@@ -10,9 +10,13 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/codelocator" />
+            <option value="$PROJECT_DIR$/hiddenapi-stubs" />
+            <option value="$PROJECT_DIR$/hookee" />
             <option value="$PROJECT_DIR$/perfetto-trace" />
             <option value="$PROJECT_DIR$/test" />
+            <option value="$PROJECT_DIR$/tester" />
             <option value="$PROJECT_DIR$/view-tree" />
+            <option value="$PROJECT_DIR$/wytrace" />
           </set>
         </option>
         <option name="resolveExternalAnnotations" value="false" />

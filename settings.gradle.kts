@@ -16,13 +16,18 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        jcenter()
         maven("https://jitpack.io")
+        maven("https://api.xposed.info/")
     }
 }
 
-rootProject.name = "My Application"
+rootProject.name = "LSPosed Tools"
+include(":wytrace")
 include(":codelocator")
 include(":test")
 include(":view-tree")
 include(":perfetto-trace")
+//include(":xappdebug")
+include(":hookee")
+include(":hiddenapi-stubs")
+include(":tester")

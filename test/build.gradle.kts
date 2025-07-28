@@ -17,6 +17,12 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    buildFeatures {
+        viewBinding {
+            enable = true
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -35,9 +41,23 @@ android {
     }
 }
 
+
+tasks.register("testParams") {
+
+    println(gradle.startParameter.taskRequests)
+
+}
+
+android.buildFeatures.buildConfig = true
+
 dependencies {
+    implementation(libs.constraintlayout)
+    implementation(project(":wytrace"))
     compileOnly("de.robv.android.xposed:api:82")
-//    implementation(libs.androidx.viewpager2)
+
+    // https://mvnrepository.com/artifact/com.squareup.okhttp3/okhttp
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    compileOnly(libs.androidx.viewpager2)
     // https://mvnrepository.com/artifact/com.squareup.okhttp3/okhttp
     // implementation("com.squareup.okhttp3:okhttp:4.12.0")
 

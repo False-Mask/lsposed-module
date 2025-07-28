@@ -1,0 +1,11 @@
+#!/bin/zsh
+
+adb shell am profile start com.instagram.android /data/local/tmp/ins1.trace
+adb shell screenrecord --time-limit 5 /data/local/tmp/ins1.mp4
+adb shell am profile stop com.instagram.android
+
+adb pull /data/local/tmp/ins1.mp4 .
+adb pull /data/local/tmp/ins1.trace .
+adb shell rm /data/local/tmp/ins1.mp4
+adb shell rm /data/local/tmp/ins1.trace
+open ins1.mp4

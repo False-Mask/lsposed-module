@@ -1,0 +1,1 @@
+adb shell am start com.kwai.video/com.yxcorp.gifshow.tiny.TinyLaunchActivity

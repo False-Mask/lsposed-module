@@ -1,0 +1,89 @@
+plugins {
+    id 'com.android.library'
+    id 'maven-publish'
+}
+
+android {
+    namespace "com.example.hook"
+    compileSdk 33
+
+    defaultConfig {
+        minSdk 30
+        targetSdk 33
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        externalNativeBuild {
+            cmake {
+//                cppFlags "-fvisibility=hidden"
+                arguments "-DANDROID_ARM_MODE=arm", "-DANDROID_STL=c++_shared", "-DCMAKE_BUILD_TYPE=Debug"
+            }
+        }
+
+        ndk {
+            abiFilters /*'armeabi-v7a', */'arm64-v8a'
+        }
+    }
+
+    packagingOptions {
+        doNotStrip "*/armeabi/*.so"
+        doNotStrip "*/armeabi-v7a/*.so"
+        doNotStrip "*/arm64-v8a/*.so"
+        doNotStrip "*/x86/*.so"
+        doNotStrip "*/x86_64/*.so"
+        doNotStrip "*/mips/*.so"
+        doNotStrip "*/mips64/*.so"
+        //...
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    externalNativeBuild {
+        cmake {
+            path "CMakeLists.txt"
+        }
+    }
+    packagingOptions {
+        exclude '**/libshadowhook.so'
+    }
+    buildFeatures {
+        prefab true
+    }
+}
+
+publishing {
+    publications {
+        aar(MavenPublication) {
+            groupId 'com.wy.lib'
+            artifactId 'wytrace'
+            version '1.0.1'
+            // 打包 aar 文件
+            artifact("$buildDir/outputs/aar/wytrace-release.aar")
+        }
+    }
+//    repositories {
+//        maven {
+//            // 配置 Maven 仓库信息
+//            url mavenRepositoryUrl
+//            credentials {
+//                username mavenRepositoryUsername
+//                password mavenRepositoryPassword
+//            }
+//        }
+//    }
+}
+
+
+dependencies {
+    api libs.shadowhook
+}

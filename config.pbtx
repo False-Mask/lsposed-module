@@ -1,0 +1,13 @@
+buffers {
+  size_kb: 2097152
+  fill_policy: DISCARD
+}
+data_sources {
+  config {
+    name: "linux.ftrace"
+    ftrace_config {
+      atrace_apps: "com.zhiliaoapp.musically.go"
+    }
+  }
+}
+duration_ms: 43200000

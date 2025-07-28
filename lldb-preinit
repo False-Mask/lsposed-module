@@ -1,0 +1,3 @@
+settings append target.exec-search-paths /Users/rose/code/lsposed/wytrace/build/intermediates/cxx/Debug/5j4l5c2r/obj/arm64-v8a
+settings append target.exec-search-paths /Users/rose/code/lsposed/wytrace/build/intermediates/cxx/Debug/5j4l5c2r/obj/arm64-v8a
+settings append target.exec-search-paths /Users/rose/code/lsposed/wytrace/build/intermediates/cxx/Debug/5j4l5c2r/obj/arm64-v8a
