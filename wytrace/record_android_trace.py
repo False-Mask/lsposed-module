@@ -238,7 +238,7 @@ def download_or_get_cached(file_name, url, sha256):
     os.chmod(tmp_path, 0o755)
     os.rename(tmp_path, bin_path)
     with open(sha256_path, 'w') as f:
-      f.write(sha256)
+      f.Write(sha256)
   return bin_path
 
 

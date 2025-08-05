@@ -9,8 +9,10 @@
 #include "faster/logger_entry.h"
 #include <sys/prctl.h>
 #include <pthread.h>
+#include <ctime>
+#include "faster/file_writer.h"
 #include "faster/tracer.h"
-#include <time.h>
+#include "faster/process.h"
 
 
 //PERFETTO_DEFINE_CATEGORIES(
@@ -127,11 +129,23 @@ static bool filter_debug = false;
 inline long getNativeTimestamp() {
     struct timespec ts{};
     clock_gettime(CLOCK_MONOTONIC, &ts);
-    return ts.tv_sec * 1000LL + ts.tv_nsec;
+    return ts.tv_sec * 1000000000LL + ts.tv_nsec;
 }
+
+bool push(LockFreeRingBuffer<LogEntry>& ringBuffer, LogEntry& entry) {
+    while (!ringBuffer.try_push(entry)) {
+        sched_yield();
+    }
+    return true;
+}
+
+thread_local LockFreeRingBuffer<LogEntry>* tl_buffer;
 
 void
 method_before(MyArtMethod *artMethod, bool &trace, long &start, std::string &method, timeval &tv) {
+    if (!isRunning.load(std::memory_order_relaxed)) {
+        return;
+    }
     trace = false;
     start = 0l;
     method = "";//    0 == gettimeofday(&tv, nullptr) && (tv.tv_sec * 1000 + tv.tv_usec / 1000) % 100 >= 0
@@ -143,19 +157,30 @@ method_before(MyArtMethod *artMethod, bool &trace, long &start, std::string &met
 //        trace = (words.size() < filter_depth) && !key.empty();
         trace = true;
         if (true) {
-            words.push(method.c_str());
-            beginSelection(method.c_str());
+            if (tl_buffer == nullptr) {
+                LOGE("none buffer new it");
+                tl_buffer = new LockFreeRingBuffer<LogEntry>();
+                pendingBufferQueue.push(tl_buffer);
+            }
+            if (tl_buffer->isFull()) {
+                LOGE("buffer is full, remake it ");
+                fullBufferQueue.push(tl_buffer);
+                tl_buffer = new LockFreeRingBuffer<LogEntry>();
+                pendingBufferQueue.push(tl_buffer);
+            }
+
+            // words.push(method.c_str());
+            // beginSelection(method.c_str());
             // get buff
-            char* buff = new char[100];
-            pthread_getname_np(pthread_self(), buff, 100);
             LogEntry logEntry{
-                .pname = reinterpret_cast<const char*>(buff),
+                .pname = pthread_name,
                 .timestamp = getNativeTimestamp(),
-                .methodName = method.c_str(),
+                .methodName = method,
                 .type = TRACE_BEGIN
             };
 //            LOGE("producerLoop Addr %p", &lock_free_ringbuffer);
-            producerLoop<LogEntry>(lock_free_ringbuffer, logEntry);
+            tl_buffer->push(logEntry);
+//            push(*tl_buffer, logEntry);
 //            LOGE("%s", method.c_str());
 //            if (filter_debug && 0 == gettimeofday(&tv, nullptr)) {
 //                start = tv.tv_sec * 1000 + tv.tv_usec / 1000;
@@ -166,16 +191,40 @@ method_before(MyArtMethod *artMethod, bool &trace, long &start, std::string &met
 
 void method_after(bool trace, long start, const std::string &method, timeval &tv) {
     if (trace) {
-        long word_size = words.size();
+        if (!isRunning.load(std::memory_order_relaxed)) {
+            return;
+        }
+
+        LogEntry logEntry{
+                .pname = pthread_name,
+                .timestamp = getNativeTimestamp(),
+                .methodName = method,
+                .type = TRACE_END
+        };
+//            LOGE("producerLoop Addr %p", &lock_free_ringbuffer);
+        if (tl_buffer == nullptr) {
+            LOGE("none buffer new it");
+            tl_buffer = new LockFreeRingBuffer<LogEntry>();
+            pendingBufferQueue.push(tl_buffer);
+        }
+        if (tl_buffer->isFull()) {
+            LOGE("buffer is full, remake it ");
+            fullBufferQueue.push(tl_buffer);
+            tl_buffer = new LockFreeRingBuffer<LogEntry>();
+            pendingBufferQueue.push(tl_buffer);
+        }
+        tl_buffer->push(logEntry);
+
+//        long word_size = words.size();
 //        if (word_size == 1 && !key.empty()) {
 //            key.pop();
 //        }
-        if (/*filter_debug && 0 == gettimeofday(&tv, nullptr)*/false) {
-            long cost = tv.tv_sec * 1000 + tv.tv_usec / 1000 - start;
-            LOGE("%lu, %s %lu ms", word_size, method.c_str(), cost);
-        }
-        words.pop();
-        endSelection();
+//        if (/*filter_debug && 0 == gettimeofday(&tv, nullptr)*/false) {
+//            long cost = tv.tv_sec * 1000 + tv.tv_usec / 1000 - start;
+//            LOGE("%lu, %s %lu ms", word_size, method.c_str(), cost);
+//        }
+//        words.pop();
+//        endSelection();
     }
 }
 
@@ -552,4 +601,14 @@ Java_com_wy_lib_wytrace_ArtMethodTrace_deoptimizedEverything(JNIEnv *env, jclass
     shadowhook_dlclose(handler);
     LOGE("bootImageNterp success");
 
+}
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_wy_lib_wytrace_ArtMethodTrace_startTrace(JNIEnv *env, jclass clazz) {
+    StartTrace();
+}
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_wy_lib_wytrace_ArtMethodTrace_endTrace(JNIEnv *env, jclass clazz) {
+    StopTrace();
 }

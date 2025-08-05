@@ -54,6 +54,14 @@ android {
         buildConfig = true
         aidl = true
     }
+
+    packaging {
+        jniLibs {
+            keepDebugSymbols += "**/*/.so"
+        }
+
+    }
+
     kotlinOptions {
         jvmTarget = "1.8"
     }

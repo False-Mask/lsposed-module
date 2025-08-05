@@ -2,13 +2,20 @@
 // Created by rose on 2025/8/4.
 //
 
-#ifndef LSPOSED_TOOLS_TRACER_H
-#define LSPOSED_TOOLS_TRACER_H
+#pragma once
 #include <thread>
+#include <vector>
 #include "faster/lock_free_queue.h"
 #include "faster/logger_entry.h"
 
 void InitTrace();
-static std::thread threadInstance;
 
-#endif //LSPOSED_TOOLS_TRACER_H
+void StartTrace();
+
+void StopTrace();
+
+extern LockFreeRingBuffer<LockFreeRingBuffer<LogEntry>*> fullBufferQueue;
+
+extern LockFreeRingBuffer<LockFreeRingBuffer<LogEntry>*> pendingBufferQueue;
+
+extern volatile LockFreeRingBuffer<LogEntry>* processingUnit;
