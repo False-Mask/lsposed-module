@@ -10,6 +10,7 @@
 #include <sys/prctl.h>
 #include <pthread.h>
 #include "faster/tracer.h"
+#include "faster/shared.h"
 #include <time.h>
 
 
@@ -146,12 +147,10 @@ method_before(MyArtMethod *artMethod, bool &trace, long &start, std::string &met
             words.push(method.c_str());
             beginSelection(method.c_str());
             // get buff
-            char* buff = new char[100];
-            pthread_getname_np(pthread_self(), buff, 100);
             LogEntry logEntry{
-                .pname = reinterpret_cast<const char*>(buff),
+                .pname = pthread_name,
                 .timestamp = getNativeTimestamp(),
-                .methodName = method.c_str(),
+                .methodName = method,
                 .type = TRACE_BEGIN
             };
 //            LOGE("producerLoop Addr %p", &lock_free_ringbuffer);

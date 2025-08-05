@@ -13,9 +13,9 @@ enum Type {
 };
 
 struct LogEntry {
-    const char* pname;
+    std::string pname;
     long timestamp;
-    const char* methodName;
+    std::string methodName;
     Type type;
 };
 

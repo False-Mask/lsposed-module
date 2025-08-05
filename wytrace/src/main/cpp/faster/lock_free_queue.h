@@ -68,7 +68,7 @@ template<typename T,size_t BufferSize = 1024 * 1024> void consumerLoop(LockFreeR
     T t;
     while (isRunning) {
         if (ringBuffer.try_pop(t)) {
-            LOGE("consume items %s %s %ld %d",t.pname,t.methodName,t.timestamp,t.type);
+            LOGE("consume items %s %s %ld %d",t.pname.c_str(),t.methodName.c_str(),t.timestamp,t.type);
         } else {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
