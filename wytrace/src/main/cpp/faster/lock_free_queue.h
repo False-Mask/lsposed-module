@@ -9,13 +9,13 @@
 #include <vector>
 #include <thread>
 #include "utils.h"
-#include <pmmintrin.h>
-
-
 
 template<typename T, size_t BufferSize = 1024 * 1024>
 class LockFreeRingBuffer {
 public:
+    LockFreeRingBuffer& operator=(const LockFreeRingBuffer&) = delete;
+
+
     struct alignas(64) Slot {
         std::atomic<bool> ready{false};
         T data;
@@ -24,7 +24,7 @@ public:
     LockFreeRingBuffer() : slots(BufferSize) {}
 
     bool try_push(const T& item) {
-        size_t current = write_pos.load(std::memory_order_relaxed);
+        size_t current = write_pos.load(std::memory_order_acquire);
         size_t next = (current + 1) % BufferSize;
 
         // 检查缓冲区是否已满
@@ -39,7 +39,7 @@ public:
     }
 
     bool try_pop(T& item) {
-        size_t current = read_pos.load(std::memory_order_relaxed);
+        size_t current = read_pos.load(std::memory_order_acquire);
 
         if (current == write_pos.load(std::memory_order_acquire)) {
             return false;
@@ -64,11 +64,11 @@ private:
 
 static bool isRunning = true;
 
-template<typename T,size_t BufferSize = 1024 * 1024> void consumerLoop(LockFreeRingBuffer<T,BufferSize>&& ringBuffer) {
+template<typename T,size_t BufferSize = 1024 * 1024> void consumerLoop(LockFreeRingBuffer<T,BufferSize>& ringBuffer) {
     T t;
     while (isRunning) {
-        if (!ringBuffer.try_pop(t)) {
-            ANDROID_LOG_DEBUG("%s %d %d",t.pnae,t.timestamp,t.type);
+        if (ringBuffer.try_pop(t)) {
+            LOGE("consume items %s %s %ld %d",t.pname,t.methodName,t.timestamp,t.type);
         } else {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }

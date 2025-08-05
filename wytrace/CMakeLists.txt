@@ -16,6 +16,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 #set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/main/libs/${ANDROID_ABI}/)
 find_package(shadowhook REQUIRED CONFIG)
 
+
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -v")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -v")
 set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} -x assembler-with-cpp -O0 -g -fPIC -v")
@@ -29,10 +30,12 @@ include_directories(src/main/cpp)
 include_directories(
         ${CMAKE_CURRENT_SOURCE_DIR}/src/main/cpp/jvmti.h
 )
+file(GLOB_RECURSE FASTER_DIRS "${CMAKE_SOURCE_DIR}/src/main/cpp/faster/*.cpp")
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
 # You can define multiple libraries, and CMake builds them for you.
 # Gradle automatically packages shared libraries with your APK.
+
 add_library( # Sets the name of the library.
         ${TARGET}
         # Sets the library as a shared library.
@@ -40,6 +43,7 @@ add_library( # Sets the name of the library.
         ${CMAKE_CURRENT_SOURCE_DIR}/src/main/cpp/arch/arm64.S
         ${CMAKE_CURRENT_SOURCE_DIR}/src/main/cpp/art_method_trace.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/main/cpp/jvmti_agent.cpp
+        ${FASTER_DIRS}
         )
 
 #add_compile_options(-fPIC)

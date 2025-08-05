@@ -15,9 +15,10 @@ enum Type {
 struct LogEntry {
     const char* pname;
     long timestamp;
+    const char* methodName;
     Type type;
 };
 
-static LockFreeRingBuffer<LogEntry> lock_free_ringbuffer;
+extern LockFreeRingBuffer<LogEntry> lock_free_ringbuffer;
 
 #endif //LSPOSED_TOOLS_LOGGER_ENTRY_H

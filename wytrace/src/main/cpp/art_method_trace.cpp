@@ -5,11 +5,14 @@
 #include <array>
 #include <unistd.h>
 #include "faster/utils.h"
-#include <faster/lock_free_queue.h>
+#include "faster/lock_free_queue.h"
 #include "faster/logger_entry.h"
 #include <sys/prctl.h>
 #include <pthread.h>
-#include <time64.h>
+#include "faster/tracer.h"
+#include <time.h>
+
+
 //PERFETTO_DEFINE_CATEGORIES(
 //        perfetto::Category(TAG)
 //                .SetDescription("Events about the all the java trace"));
@@ -17,6 +20,7 @@
 //PERFETTO_TRACK_EVENT_STATIC_STORAGE();
 
 
+static void initTracer();
 
 class MyArtMethod {
 public:
@@ -42,6 +46,7 @@ public:
     }
 
     static bool Init(void *handler) {
+        initTracer();
         return !(MyArtMethod::PrettyMethodSym = reinterpret_cast<MyArtMethod::PrettyMethodType>(shadowhook_dlsym(
                 handler, "_ZN3art9ArtMethod12PrettyMethodEPS0_b"))) &&
                !(MyArtMethod::PrettyMethodSym = reinterpret_cast<MyArtMethod::PrettyMethodType>(shadowhook_dlsym(
@@ -54,6 +59,10 @@ private:
     static std::string (*PrettyMethodSym)(MyArtMethod *thiz, bool with_signature);
 
 };
+
+static void initTracer() {
+    InitTrace();
+}
 
 MyArtMethod::PrettyMethodType MyArtMethod::PrettyMethodSym = nullptr;
 
@@ -106,6 +115,7 @@ extern "C" {
    void *executeNterpImpl_orgi = NULL;
 }
 
+
 thread_local std::stack<std::string> words;
 thread_local std::stack<bool> key;
 static std::string filter_key = "com.wy";
@@ -113,6 +123,12 @@ static int filter_tid = -1;
 static int filter_depth = 10;
 static bool filter_debug = false;
 
+
+inline long getNativeTimestamp() {
+    struct timespec ts{};
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec * 1000LL + ts.tv_nsec;
+}
 
 void
 method_before(MyArtMethod *artMethod, bool &trace, long &start, std::string &method, timeval &tv) {
@@ -129,12 +145,16 @@ method_before(MyArtMethod *artMethod, bool &trace, long &start, std::string &met
         if (true) {
             words.push(method.c_str());
             beginSelection(method.c_str());
-            char buff[100] = {0};
+            // get buff
+            char* buff = new char[100];
+            pthread_getname_np(pthread_self(), buff, 100);
             LogEntry logEntry{
-                .pname = pthread_getname_np(pthread_self(), buff, 100),
-                .timestamp = timespec,
+                .pname = reinterpret_cast<const char*>(buff),
+                .timestamp = getNativeTimestamp(),
+                .methodName = method.c_str(),
                 .type = TRACE_BEGIN
             };
+//            LOGE("producerLoop Addr %p", &lock_free_ringbuffer);
             producerLoop<LogEntry>(lock_free_ringbuffer, logEntry);
 //            LOGE("%s", method.c_str());
 //            if (filter_debug && 0 == gettimeofday(&tv, nullptr)) {
@@ -254,6 +274,7 @@ void do_hook() {
     }
 
 }
+
 
 // 初始化 Perfetto
 // 初始化参数为当前 Process 内部kInProcessBackend
