@@ -9,9 +9,10 @@
 #include "faster/logger_entry.h"
 #include <sys/prctl.h>
 #include <pthread.h>
+#include <ctime>
+#include "faster/file_writer.h"
 #include "faster/tracer.h"
 #include "faster/shared.h"
-#include <time.h>
 
 
 //PERFETTO_DEFINE_CATEGORIES(
@@ -20,6 +21,7 @@
 //
 //PERFETTO_TRACK_EVENT_STATIC_STORAGE();
 
+Writer w;
 
 static void initTracer();
 
@@ -61,8 +63,21 @@ private:
 
 };
 
+std::string procName;
+
+
+std::string get_process_name() {
+    if (procName.empty()) {
+        const char* progName = getprogname();
+        procName = progName ? std::string(progName) : "unknown";
+    }
+    return procName;
+}
+
 static void initTracer() {
     InitTrace();
+    std::string fileName = std::string("/sdcard/Download/") +  get_process_name();
+    w.Init(fileName, 1024 * 1024 * 1024);
 }
 
 MyArtMethod::PrettyMethodType MyArtMethod::PrettyMethodSym = nullptr;
