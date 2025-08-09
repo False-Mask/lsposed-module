@@ -2,12 +2,11 @@
 // Created by rose on 2025/8/4.
 //
 
-#ifndef LSPOSED_TOOLS_LOGGER_ENTRY_H
-#define LSPOSED_TOOLS_LOGGER_ENTRY_H
+#pragma once
+#include <cstdint>
+#include "string"
 
-#include "lock_free_queue.h"
-
-enum Type {
+enum Type : int8_t {
     TRACE_BEGIN,
     TRACE_END
 };
@@ -18,7 +17,3 @@ struct LogEntry {
     std::string methodName;
     Type type;
 };
-
-extern LockFreeRingBuffer<LogEntry> lock_free_ringbuffer;
-
-#endif //LSPOSED_TOOLS_LOGGER_ENTRY_H

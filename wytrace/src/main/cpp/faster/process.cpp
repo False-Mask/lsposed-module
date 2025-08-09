@@ -2,7 +2,8 @@
 // Created by rose on 2025/8/5.
 //
 
-#include "shared.h"
+#include "process.h"
+#include "lock_free_queue.h"
 #include <string>
 // 首次访问时自动初始化（延迟加载）
 
@@ -22,4 +23,16 @@ thread_local std::string pthread_name = []() {
     }
     return platform_name;
 }();
+
+std::string procName;
+
+std::string get_process_name() {
+    if (procName.empty()) {
+        const char* progName = getprogname();
+        procName = progName ? std::string(progName) : "unknown";
+    }
+    return procName;
+}
+
+
 

@@ -3,4 +3,3 @@
 //
 #include "logger_entry.h"
 
-LockFreeRingBuffer<LogEntry> lock_free_ringbuffer;

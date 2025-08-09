@@ -2,13 +2,17 @@
 // Created by rose on 2025/8/4.
 //
 
-#ifndef LSPOSED_TOOLS_LOCK_FREE_QUEUE_H
-#define LSPOSED_TOOLS_LOCK_FREE_QUEUE_H
+#pragma once
 
 #include <atomic>
 #include <vector>
 #include <thread>
+#include <mutex>
 #include "utils.h"
+#include "process.h"
+#include "logger_entry.h"
+#include "file_writer.h"
+#include "compiler.h"
 
 template<typename T, size_t BufferSize = 1024 * 1024>
 class LockFreeRingBuffer {
@@ -62,12 +66,33 @@ private:
     std::vector<Slot> slots;
 };
 
-static bool isRunning = true;
+extern std::atomic<bool> destroy;
+extern std::atomic<bool> isRunning;
+extern std::mutex mtx;
+extern std::condition_variable cv;
+
 
 template<typename T,size_t BufferSize = 1024 * 1024> void consumerLoop(LockFreeRingBuffer<T,BufferSize>& ringBuffer) {
     T t;
-    while (isRunning) {
+    while (likely(!destroy.load(std::memory_order_relaxed))) {
+        if (unlikely(!isRunning.load(std::memory_order_relaxed))) {
+            std::unique_lock<std::mutex> lock(mtx);
+            // before sleep
+            if (!isRunning.load(std::memory_order_relaxed)) {
+                writer.Destroy();
+            }
+//            writer.Destroy();
+            cv.wait(lock, [] {
+                return isRunning.load(std::memory_order_acquire);
+            });
+            if (isRunning.load(std::memory_order_relaxed)) {
+                std::string fileName = std::string("/data/user/0/") +  get_process_name() + "/." + get_process_name();
+                writer.Init(fileName, 1024 * 1024 * 1024);
+            }
+            // before start
+        }
         if (ringBuffer.try_pop(t)) {
+            writer.Write(t);
 //            LOGE("consume items %s %s %ld %d",t.pname.c_str(),t.methodName.c_str(),t.timestamp,t.type);
         } else {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -82,5 +107,4 @@ template<typename T,size_t BufferSize = 1024 * 1024> void producerLoop(LockFreeR
     }
 }
 
-
-#endif //LSPOSED_TOOLS_LOCK_FREE_QUEUE_H
+extern LockFreeRingBuffer<LogEntry> lock_free_ringbuffer;

@@ -41,6 +41,10 @@ public class ArtMethodTrace {
 
     public static native void disableNterp();
 
+    public static native void startTrace();
+
+    public static native void endTrace();
+
     public static void fix14debugApp(Context context) {
         if (Build.VERSION.SDK_INT == 34 && (context.getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
             bootImageNterp();
