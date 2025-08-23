@@ -10,7 +10,7 @@ std::atomic<bool> isRunning(false);
 
 std::atomic<bool> destroy(false);
 
-std::atomic<int> lock = -1;
+std::atomic<int> lock = IDLE;
 
 std::mutex mtx;
 std::condition_variable cv;

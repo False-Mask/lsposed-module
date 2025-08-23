@@ -62,9 +62,15 @@ public:
         return true;
     }
 
+    void clear() {
+        read_pos.store(0, std::memory_order_relaxed);
+        write_pos.store(0, std::memory_order_relaxed);
+    }
+
     bool try_pop(T& item) {
         bool expect = false;
         while (!readLock.compare_exchange_weak(expect, true, std::memory_order_acquire)) {
+            LOGD("try pop looping");
         }
 
         // check if the buffer is full
@@ -75,7 +81,10 @@ public:
         }
 
         // 等待数据就绪
-        while (!slots[current].ready.load(std::memory_order_acquire)) {}
+        if (!slots[current].ready.load(std::memory_order_acquire)) {
+            LOGD("slot is not ready return it");
+            return false;
+        }
         // get the data
         item = std::move(slots[current].data);
         slots[current].ready.store(false, std::memory_order_release);
@@ -99,6 +108,12 @@ public:
 
     int getSlotLen() {
         return slots.size();
+    }
+
+    int isEmpty() {
+        auto read = read_pos.load(std::memory_order_relaxed);
+        auto write = write_pos.load(std::memory_order_relaxed);
+        return read == write;
     }
 
     bool isFull() {

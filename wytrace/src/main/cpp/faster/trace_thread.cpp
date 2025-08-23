@@ -125,23 +125,31 @@ void TraceThread::consumerLoop(int len,int threadKey, std::barrier<>* barrier) {
     LogEntry logEntry;
     while (likely(!destroy.load(std::memory_order_relaxed))) {
         // notRunning Status
-        if (unlikely(!isRunning.load(std::memory_order_relaxed))) {
+        if (unlikely(fullBufferQueue.isEmpty() &&
+         pendingBufferQueue.isEmpty() &&
+         (pending == nullptr ||  pending->isEmpty()) &&
+         (processingUnit == nullptr) &&
+         !isRunning.load(std::memory_order_relaxed))) {
+
             // before sleep
-            if (!isRunning.load(std::memory_order_relaxed)) {
+            if (localWriter.getFileLen() > 0) {
                 localWriter.Destroy();
                 barrier->arrive_and_wait();
                 mergeAllFiles(len, threadKey);
             }
+            // wait util next term
             {
                 std::unique_lock<std::mutex> mtxLock(mtx);
+                LOGE("thread %d is sleeping waiting for wake up", threadKey);
                 cv.wait(mtxLock, [] {
                     return isRunning.load(std::memory_order_acquire);
                 });
             }
+            // next turn is begin
             if (isRunning.load(std::memory_order_relaxed)) {
                 std::string fileName;
                 makeFileName(threadKey, fileName);
-                localWriter.Init(fileName, 2 * 1024 * 1024 * (1024 / len));
+                localWriter.Init(fileName, 1024 * 1024 * (1024 / len));
             }
             // before start
         }
@@ -150,28 +158,37 @@ void TraceThread::consumerLoop(int len,int threadKey, std::barrier<>* barrier) {
         // state 1 -> acquired the buffer
         // state 2 -> acquired the pendingBuffer
         int state = 0;
-        if (processingUnit == nullptr) {
+        if (processingUnit == nullptr && pending == nullptr) {
             // acquire the buffer
             LockFreeRingBuffer<LogEntry>* bq;
+            LOGD("thread %d trying pop fullBufferQueue isEmpty=%d", threadKey, fullBufferQueue.isEmpty());
             if (fullBufferQueue.try_pop(bq)) {
                 processingUnit = bq;
                 state = 1;
             } else {
+                LOGE("thread %d pending %p", threadKey , pending);
+                if (pending != nullptr) {
+                    LOGE("thread %d pending is empty=%d", threadKey, pending->isEmpty());
+                }
+                LOGD("thread %d trying pop pendingBufferQueue isEmpty=%d", threadKey, pendingBufferQueue.isEmpty());
                 auto res = pendingBufferQueue.try_pop(pending);
                 if (res) {
                     state = 2;
                 }
             }
-        } else {
+        } else if (processingUnit != nullptr) {
             state = 1;
+        } else if (pending != nullptr) {
+            state = 2;
         }
 
 
+        // process
         if (state == 0) {
             LOGE("%d waiting", threadKey);
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         } else if (state == 1 && processingUnit != nullptr) {
-            if (pending == processingUnit) {
+            if (pending == processingUnit || (pending != nullptr && pending->isEmpty())) {
                 pending = nullptr;
             }
             // 1. wait all prepared
@@ -179,23 +196,29 @@ void TraceThread::consumerLoop(int len,int threadKey, std::barrier<>* barrier) {
 
             process(len, threadKey, localWriter, logEntry);
 
-            LOGE("processed one buffer!");
+            LOGE("thread %d processed one buffer %p", threadKey, const_cast<LockFreeRingBuffer<LogEntry>*>(processingUnit));
 
             // wait all finished
             barrier->arrive_and_wait();
 
+            // lock
+            auto expect = IDLE;
+            if (processingUnit != nullptr && lock.compare_exchange_strong(expect, threadKey)) {
+                LOGD("thread %d enter reset branch, processUnit is %p ", threadKey, processingUnit);
+                const_cast<LockFreeRingBuffer<LogEntry>*>(processingUnit)->clear();
+                processingUnit = nullptr;
+                lock.store(IDLE);
+            }
+            barrier->arrive_and_wait();
 //            LOGE("process finished");
         } else if (state == 2 && pending != nullptr) {
             auto res = pending->try_pop(logEntry);
+            LOGE("thread %d is steal task res=%d", threadKey, res);
             if (res) {
+                LOGE("write logEntry");
                 localWriter.Write(logEntry);
             }
         }
-//        if (ringBuffer.try_pop(t)) {
-//            writer.Write(t);
-//        } else {
-//            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-//        }
     }
 }
 

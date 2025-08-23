@@ -38,7 +38,7 @@ bool Writer::Init(std::string& fileName, int len) {
 }
 
 bool Writer::Destroy() {
-    LOGE("destroy invoked");
+    LOGE("destroy invoked writeLen: %d, fd: %d, mmap: %p", writeLen, fd, mmapPointer);
     if (writeLen > 0) {
         if (msync(mmapPointer, writeLen,MS_SYNC) == -1) {
             LOGE("destroy msync failed %s", strerror(errno));
@@ -61,9 +61,9 @@ bool Writer::Destroy() {
             LOGE("destroy munmap failed %s", strerror(errno));
         }
     }
-    mmapPointer = nullptr;
-    fileLen = 0;
+    fileLen = -1;
     fd = -1;
+    mmapPointer = nullptr;
     writeLen = 0;
     LOGD("destroy successfully");
     return true;
@@ -112,3 +112,6 @@ void Writer::writeInt8(char* &begin, int8_t v) {
     writeLen += sizeof(int8_t);
 }
 
+int Writer::getFileLen() {
+    return fileLen;
+}

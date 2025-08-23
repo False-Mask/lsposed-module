@@ -10,8 +10,8 @@
 class Writer {
 private:
     int fd = -1;
-    void* mmapPointer = nullptr;
     int fileLen = -1;
+    void* mmapPointer = nullptr;
     int writeLen = 0;
 
 public:
@@ -24,5 +24,7 @@ public:
     void writeLong(char *&begin, long v);
 
     void writeInt8(char *&begin, int8_t v);
+
+    int getFileLen();
 };
 
